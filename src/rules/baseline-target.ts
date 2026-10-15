@@ -1,12 +1,8 @@
 import {createRequire} from 'node:module';
 import path from 'node:path';
 import type {TSESLint} from '@typescript-eslint/utils';
-import {
-  detectBaselineTargetForFeatures,
-  detectBaselineYearForFeatures,
-  detectFeaturesForSource
-} from 'baseline-detector';
 import {tryGetTypedParserServices} from '../utils/typescript.js';
+import {getBaselineDetector} from '../utils/baseline-detector.js';
 
 type MessageIds = 'notBaseline' | 'exceedsYear';
 
@@ -27,6 +23,11 @@ export const baselineTarget: TSESLint.RuleModule<MessageIds, []> = {
   },
   defaultOptions: [],
   create(context) {
+    const {
+      detectBaselineTargetForFeatures,
+      detectBaselineYearForFeatures,
+      detectFeaturesForSource
+    } = getBaselineDetector();
     const services = tryGetTypedParserServices(context);
 
     return {

@@ -1,6 +1,8 @@
 import {RuleTester} from 'eslint';
 import {RuleTester as TSRuleTester} from '@typescript-eslint/rule-tester';
 import {baselineTarget} from './baseline-target.js';
+import * as baselineDetector from 'baseline-detector';
+import {setBaselineDetector} from '../utils/baseline-detector.js';
 import * as path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -19,6 +21,8 @@ const typedRuleTester = new TSRuleTester({
     }
   }
 });
+setBaselineDetector(baselineDetector);
+
 const ruleTester = new RuleTester({
   languageOptions: {
     ecmaVersion: 2022,
