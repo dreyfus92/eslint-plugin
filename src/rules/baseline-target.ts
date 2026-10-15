@@ -2,9 +2,9 @@ import {createRequire} from 'node:module';
 import path from 'node:path';
 import type {TSESLint} from '@typescript-eslint/utils';
 import {
-  detectBaselineTargetForFeatures,
-  detectBaselineYearForFeatures,
-  detectFeaturesForSource
+  baselineStatusOf,
+  detectFeaturesForSource,
+  yearOf
 } from 'baseline-detector';
 import {tryGetTypedParserServices} from '../utils/typescript.js';
 
@@ -22,7 +22,7 @@ export const baselineTarget: TSESLint.RuleModule<MessageIds, []> = {
     messages: {
       notBaseline: '`{{feature}}` is not Baseline yet',
       exceedsYear:
-        'This file needs Baseline {{year}}, above the {{floor}} floor'
+        '`{{feature}}` is Baseline {{year}}, above the {{floor}} floor'
     }
   },
   defaultOptions: [],
@@ -30,7 +30,7 @@ export const baselineTarget: TSESLint.RuleModule<MessageIds, []> = {
     const services = tryGetTypedParserServices(context);
 
     return {
-      Program(node) {
+      Program() {
         const features = detectFeaturesForSource(context.sourceCode.text, {
           fileName: context.filename,
           ...(services && {
@@ -43,25 +43,31 @@ export const baselineTarget: TSESLint.RuleModule<MessageIds, []> = {
             }
           })
         });
-        const target = detectBaselineTargetForFeatures(features);
-        const year = detectBaselineYearForFeatures(features);
-        // the order of the checks matters, a feature that is not baseline makes year come back null, and so does a file
-        // with no features at all.
-        if (target.status === false) {
-          context.report({
-            node,
-            messageId: 'notBaseline',
-            data: {feature: target.reason}
-          });
-          return;
-        }
 
-        if (year !== null && year > BASELINE_YEAR) {
-          context.report({
-            node,
-            messageId: 'exceedsYear',
-            data: {year, floor: BASELINE_YEAR}
-          });
+        for (const feature of features.get(context.filename) ?? []) {
+          const status = baselineStatusOf(feature.id);
+          const year = yearOf(feature.id);
+
+          for (const [start, end] of feature.ranges) {
+            const loc = {
+              start: context.sourceCode.getLocFromIndex(start),
+              end: context.sourceCode.getLocFromIndex(end)
+            };
+
+            if (status === false) {
+              context.report({
+                loc,
+                messageId: 'notBaseline',
+                data: {feature: feature.id}
+              });
+            } else if (year !== null && year > BASELINE_YEAR) {
+              context.report({
+                loc,
+                messageId: 'exceedsYear',
+                data: {feature: feature.id, year, floor: BASELINE_YEAR}
+              });
+            }
+          }
         }
       }
     };
