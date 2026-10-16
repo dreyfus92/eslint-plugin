@@ -33,7 +33,7 @@ import {preferGetOrInsert} from './rules/prefer-get-or-insert.js';
 import {preferCharCodeAtInLoop} from './rules/prefer-charcode-at-in-loop.js';
 import {preferSliceOverSplitIndex} from './rules/prefer-slice-over-split-index.js';
 import {preferThrowIfNoEntry} from './rules/prefer-throw-if-no-entry.js';
-import { baselineTarget } from './rules/baseline-target.js';
+import {baselineTarget} from './rules/baseline-target.js';
 
 const plugin: ESLint.Plugin = {
   meta: {
