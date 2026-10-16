@@ -77,13 +77,19 @@ Copying these rules into your `rules` object will achieve the same effect as usi
 
 ## Baseline rules
 
-The Baseline rules live in a separate entry point because they need [`baseline-detector`](https://github.com/43081j/baseline-detector), which is an optional peer dependency. Install it alongside the plugin:
+The Baseline rules need [`baseline-detector`](https://github.com/43081j/baseline-detector), an optional peer dependency, so they live in their own entry:
 
 ```sh
 npm install --save-dev baseline-detector
 ```
 
-Then import the `baseline` entry instead of the main one. It is the same `e18e` plugin with the Baseline rules added:
+```js
+import {config as baselineConfig} from '@e18e/eslint-plugin/baseline';
+
+export default [baselineConfig];
+```
+
+Or register the plugin yourself, it's the full `e18e` plugin with the Baseline rules added:
 
 ```js
 import e18e from '@e18e/eslint-plugin/baseline';
@@ -100,15 +106,7 @@ export default [
 ];
 ```
 
-The entry also exports a ready-made `config` that registers the plugin and enables `baseline-target`:
-
-```js
-import {config as baselineConfig} from '@e18e/eslint-plugin/baseline';
-
-export default [baselineConfig];
-```
-
-With oxlint, use the entry in `jsPlugins`:
+With oxlint:
 
 ```json
 {
@@ -118,8 +116,6 @@ With oxlint, use the entry in `jsPlugins`:
   }
 }
 ```
-
-The main `@e18e/eslint-plugin` entry never loads `baseline-detector`, so the other rules work whether or not it is installed.
 
 ## Linting `package.json`
 
