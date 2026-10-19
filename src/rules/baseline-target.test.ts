@@ -1,4 +1,5 @@
 import {RuleTester} from 'eslint';
+import css from '@eslint/css';
 import {RuleTester as TSRuleTester} from '@typescript-eslint/rule-tester';
 import {baselineTarget} from './baseline-target.js';
 import * as path from 'node:path';
@@ -78,6 +79,56 @@ typedRuleTester.run('baseline-target (typed)', baselineTarget, {
           column: 27,
           endLine: 1,
           endColumn: 40
+        }
+      ]
+    }
+  ]
+});
+
+const cssRuleTester = new RuleTester({
+  plugins: {css},
+  language: 'css/css'
+});
+
+cssRuleTester.run('baseline-target (css)', baselineTarget as never, {
+  valid: [
+    {code: 'a { color: red; }', filename: 'test.css'},
+    {code: 'b { height: 100dvh; }', filename: 'test.css'}
+  ],
+  invalid: [
+    {
+      code: 'a { text-wrap: balance; }',
+      filename: 'test.css',
+      errors: [
+        {
+          messageId: 'exceedsYear',
+          data: {feature: 'text-wrap', year: 2024, floor: 2023},
+          line: 1,
+          column: 5,
+          endLine: 1,
+          endColumn: 14
+        },
+        {
+          messageId: 'exceedsYear',
+          data: {feature: 'text-wrap-balance', year: 2024, floor: 2023},
+          line: 1,
+          column: 16,
+          endLine: 1,
+          endColumn: 23
+        }
+      ]
+    },
+    {
+      code: '.a { anchor-name: --a; }',
+      filename: 'test.css',
+      errors: [
+        {
+          messageId: 'notBaseline',
+          data: {feature: 'anchor-positioning'},
+          line: 1,
+          column: 6,
+          endLine: 1,
+          endColumn: 17
         }
       ]
     }

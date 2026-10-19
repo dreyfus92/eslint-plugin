@@ -15,6 +15,7 @@ const BASELINE_YEAR = 2023;
 export const baselineTarget: TSESLint.RuleModule<MessageIds, []> = {
   meta: {
     type: 'problem',
+    languages: ['js/js', 'css/css'],
     docs: {
       description: `Disallow features newer than Baseline ${BASELINE_YEAR}`
     },
@@ -29,47 +30,50 @@ export const baselineTarget: TSESLint.RuleModule<MessageIds, []> = {
   create(context) {
     const services = tryGetTypedParserServices(context);
 
-    return {
-      Program() {
-        const features = detectFeaturesForSource(context.sourceCode.text, {
-          fileName: context.filename,
-          ...(services && {
-            typescriptContext: {
-              ts: createRequire(path.join(context.cwd, 'package.json'))(
-                'typescript'
-              ),
-              program: services.program,
-              checker: services.program.getTypeChecker()
-            }
-          })
-        });
+    const check = (): void => {
+      const features = detectFeaturesForSource(context.sourceCode.text, {
+        fileName: context.filename,
+        ...(services && {
+          typescriptContext: {
+            ts: createRequire(path.join(context.cwd, 'package.json'))(
+              'typescript'
+            ),
+            program: services.program,
+            checker: services.program.getTypeChecker()
+          }
+        })
+      });
 
-        for (const feature of features.get(context.filename) ?? []) {
-          const status = baselineStatusOf(feature.id);
-          const year = yearOf(feature.id);
+      for (const feature of features.get(context.filename) ?? []) {
+        const status = baselineStatusOf(feature.id);
+        const year = yearOf(feature.id);
 
-          for (const [start, end] of feature.ranges) {
-            const loc = {
-              start: context.sourceCode.getLocFromIndex(start),
-              end: context.sourceCode.getLocFromIndex(end)
-            };
+        for (const [start, end] of feature.ranges) {
+          const loc = {
+            start: context.sourceCode.getLocFromIndex(start),
+            end: context.sourceCode.getLocFromIndex(end)
+          };
 
-            if (status === false) {
-              context.report({
-                loc,
-                messageId: 'notBaseline',
-                data: {feature: feature.id}
-              });
-            } else if (year !== null && year > BASELINE_YEAR) {
-              context.report({
-                loc,
-                messageId: 'exceedsYear',
-                data: {feature: feature.id, year, floor: BASELINE_YEAR}
-              });
-            }
+          if (status === false) {
+            context.report({
+              loc,
+              messageId: 'notBaseline',
+              data: {feature: feature.id}
+            });
+          } else if (year !== null && year > BASELINE_YEAR) {
+            context.report({
+              loc,
+              messageId: 'exceedsYear',
+              data: {feature: feature.id, year, floor: BASELINE_YEAR}
+            });
           }
         }
       }
+    };
+
+    return {
+      Program: check,
+      StyleSheet: check
     };
   }
 };
