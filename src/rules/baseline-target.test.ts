@@ -1,15 +1,19 @@
-import {RuleTester} from 'eslint';
+import {Linter, RuleTester} from 'eslint';
 import css from '@eslint/css';
 import {RuleTester as TSRuleTester} from '@typescript-eslint/rule-tester';
 import {baselineTarget} from './baseline-target.js';
 import * as path from 'node:path';
+import {describe, expect, it} from 'vitest';
 import {fileURLToPath} from 'node:url';
 
 const rootDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../..'
 );
+const yearSettings = {e18e: {baseline: {target: 2023}}};
+
 const typedRuleTester = new TSRuleTester({
+  settings: yearSettings,
   languageOptions: {
     parserOptions: {
       projectService: {
@@ -21,6 +25,7 @@ const typedRuleTester = new TSRuleTester({
   }
 });
 const ruleTester = new RuleTester({
+  settings: yearSettings,
   languageOptions: {
     ecmaVersion: 2022,
     sourceType: 'module'
@@ -86,6 +91,7 @@ typedRuleTester.run('baseline-target (typed)', baselineTarget, {
 });
 
 const cssRuleTester = new RuleTester({
+  settings: yearSettings,
   plugins: {css},
   language: 'css/css'
 });
@@ -133,4 +139,65 @@ cssRuleTester.run('baseline-target (css)', baselineTarget as never, {
       ]
     }
   ]
+});
+
+const targetRuleTester = new RuleTester({
+  languageOptions: {
+    ecmaVersion: 2022,
+    sourceType: 'module'
+  }
+});
+
+targetRuleTester.run('baseline-target (targets)', baselineTarget as never, {
+  valid: [
+    'const x = a ?? b;',
+    {
+      code: 'new URLPattern();',
+      settings: {e18e: {baseline: {target: 'newly available'}}}
+    },
+    {
+      code: 'new URLPattern();',
+      settings: {e18e: {baseline: {target: 2025}}}
+    }
+  ],
+  invalid: [
+    {
+      code: 'new URLPattern();',
+      errors: [
+        {
+          messageId: 'notWidelyAvailable',
+          data: {feature: 'urlpattern'},
+          line: 1,
+          column: 5
+        }
+      ]
+    },
+    {
+      code: 'new URLPattern();',
+      settings: {e18e: {baseline: {target: 'widely available'}}},
+      errors: [{messageId: 'notWidelyAvailable'}]
+    },
+    {
+      code: 'Temporal.Now;',
+      settings: {e18e: {baseline: {target: 'newly available'}}},
+      errors: [{messageId: 'notBaseline', data: {feature: 'temporal'}}]
+    }
+  ]
+});
+
+describe('baseline-target settings', () => {
+  it('rejects an unknown target', () => {
+    const linter = new Linter();
+    expect(() =>
+      linter.verify(
+        'x = 1;',
+        {
+          plugins: {e18e: {rules: {'baseline-target': baselineTarget}}},
+          settings: {e18e: {baseline: {target: 'soon'}}},
+          rules: {'e18e/baseline-target': 'error'}
+        } as never,
+        {filename: 'x.js'}
+      )
+    ).toThrow('Invalid settings.e18e.baseline.target "soon"');
+  });
 });
