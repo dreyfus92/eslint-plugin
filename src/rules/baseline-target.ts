@@ -20,6 +20,12 @@ interface Violation {
   data: Record<string, string | number>;
 }
 
+function property(value: unknown, key: string): unknown {
+  return typeof value === 'object' && value !== null
+    ? Reflect.get(value, key)
+    : undefined;
+}
+
 function parseTarget(value: unknown): BaselineTarget {
   if (value === undefined || value === 'widely available') {
     return {kind: 'widely available'};
@@ -83,10 +89,12 @@ export const baselineTarget: TSESLint.RuleModule<MessageIds, []> = {
   },
   defaultOptions: [],
   create(context) {
-    const settings = context.settings as {
-      e18e?: {baseline?: {target?: unknown}};
-    };
-    const target = parseTarget(settings.e18e?.baseline?.target);
+    const target = parseTarget(
+      property(
+        property(property(context.settings, 'e18e'), 'baseline'),
+        'target'
+      )
+    );
     const services = tryGetTypedParserServices(context);
 
     const check = (): void => {
